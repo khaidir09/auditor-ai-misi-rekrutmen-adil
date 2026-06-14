@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Level 3: Proteksi Identitas</title>
+    <script src="tailwind.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden;
+        background-color: #020617;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: "Plus Jakarta Sans", sans-serif;
+        user-select: none;
+        touch-action: none;
+      }
+      #game-container {
+        width: 1280px;
+        height: 720px;
+        position: relative;
+        background: radial-gradient(
+          circle at top right,
+          #0f172a 0%,
+          #020617 100%
+        );
+        border: 1px solid #1e293b;
+        overflow: hidden;
+      }
+      .heading {
+        font-family: "Outfit", sans-serif;
+      }
+      canvas {
+        display: block;
+        position: absolute;
+        inset: 0;
+        cursor: crosshair;
+      }
+      .ui-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+      .interactive {
+        pointer-events: auto;
+      }
+
+      .health-bar-bg {
+        width: 300px;
+        height: 14px;
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 7px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      #health-fill {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, #ef4444, #10b981);
+        transition: width 0.3s ease;
+      }
+
+      .portal-glow {
+        position: absolute;
+        right: 0;
+        top: 120px;
+        bottom: 0;
+        width: 60px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(99, 102, 241, 0.2)
+        );
+        border-right: 4px solid #6366f1;
+        box-shadow: 10px 0 30px rgba(99, 102, 241, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <canvas id="securityCanvas" class="interactive"></canvas>
+      <div class="portal-glow"></div>
+
+      <div class="ui-overlay p-10">
+        <!-- Header -->
+        <div class="flex justify-between items-start">
+          <div>
+            <h1 class="heading text-4xl font-bold text-white mb-2">
+              MISI 03: PROTEKSI IDENTITAS
+            </h1>
+            <p
+              class="text-indigo-400 tracking-widest text-base uppercase font-semibold"
+            >
+              Protokol Keamanan Data & Masking
+            </p>
+          </div>
+
+          <div class="flex gap-6 items-center">
+            <div
+              class="flex flex-col items-end gap-2 bg-slate-900/80 p-5 rounded-2xl border border-slate-700/50 shadow-lg"
+            >
+              <p
+                class="text-xs text-slate-400 uppercase font-bold tracking-widest"
+              >
+                Security Integrity
+              </p>
+              <div class="health-bar-bg mt-1">
+                <div id="health-fill"></div>
+              </div>
+              <p
+                id="health-percent"
+                class="text-sm font-bold text-emerald-400 mt-1"
+              >
+                100% SECURE
+              </p>
+            </div>
+
+            <!-- Tombol Kembali ke Lab -->
+            <button
+              onclick="exitToMenu()"
+              class="px-6 py-4 bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-200 text-sm font-bold rounded-xl border border-slate-700 transition-all shadow-md interactive"
+            >
+              KEMBALI KE LAB
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Counter -->
+        <div
+          id="progress-counter"
+          class="hidden absolute bottom-10 left-10 bg-slate-900/60 p-5 rounded-2xl border border-slate-700/50 backdrop-blur-sm"
+        >
+          <p
+            class="text-xs text-slate-400 uppercase font-bold mb-2 tracking-widest"
+          >
+            Data Terproteksi
+          </p>
+          <p
+            id="protected-count"
+            class="text-5xl font-bold text-white heading drop-shadow-md"
+          >
+            0<span class="text-2xl text-slate-500 font-normal"> / 15</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Win Screen -->
+      <div
+        id="win-screen"
+        class="fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-10 hidden interactive"
+      >
+        <div class="text-center">
+          <div
+            class="w-24 h-24 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-8"
+          >
+            <svg
+              class="w-12 h-12 text-indigo-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <h2 class="heading text-5xl font-bold text-white mb-4">
+            SISTEM AMAN
+          </h2>
+          <p class="text-slate-400 text-lg mb-10 max-w-lg mx-auto">
+            Audit selesai. Kamu telah memastikan AI rekrutmen ini bekerja secara
+            adil dan aman dari risiko kebocoran privasi pelamar.
+          </p>
+          <button
+            onclick="finishAndReturn()"
+            class="px-12 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-xl transition-all shadow-lg shadow-indigo-500/20"
+          >
+            Terbitkan Sertifikat
+          </button>
+        </div>
+      </div>
+
+      <!-- Ready Screen: game baru berjalan setelah pengguna menekan tombol -->
+      <div
+        id="ready-screen"
+        class="absolute inset-0 z-40 flex items-center justify-center p-10 bg-slate-950/75 interactive backdrop-blur-sm"
+      >
+        <div
+          class="w-full max-w-4xl bg-slate-900/95 border border-indigo-500/40 rounded-3xl p-8 shadow-2xl"
+        >
+          <h2 class="heading text-3xl font-bold text-white text-center mb-6">
+            SIAP MEMULAI AUDIT?
+          </h2>
+
+          <div class="grid grid-cols-2 gap-5 mb-7">
+            <div
+              class="bg-indigo-500/10 border border-indigo-500/30 px-6 py-5 rounded-2xl text-indigo-200 leading-relaxed"
+            >
+              <strong class="text-indigo-400 text-lg block mb-2"
+                >INSTRUKSI:</strong
+              >
+              Ketuk aliran data yang memuat
+              <span class="text-white font-bold bg-indigo-500/20 px-1 rounded"
+                >informasi identitas pribadi/rahasia</span
+              >
+              untuk melakukan proses enkripsi (Masking).
+            </div>
+            <div
+              class="bg-rose-500/10 border border-rose-500/30 px-6 py-5 rounded-2xl text-rose-200 leading-relaxed"
+            >
+              <strong class="text-rose-400 text-lg block mb-2">AWAS:</strong>
+              Memalsukan atau menutupi data umum yang
+              <span class="text-white font-bold bg-rose-500/20 px-1 rounded"
+                >esensial untuk evaluasi AI</span
+              >
+              akan memicu penalti dan menurunkan Integritas Sistem!
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button
+              id="start-button"
+              type="button"
+              class="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-indigo-500/20"
+            >
+              SAYA SIAP, MULAI
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("securityCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 1280;
+      canvas.height = 720;
+
+      let health = 100;
+      let protectedData = 0;
+      let dataStream = [];
+      let isWin = false;
+      let gameStarted = false;
+      let lastSpawn = 0;
+      const targetData = 15;
+
+      const dataTypes = [
+        { label: "NIK", sensitive: true },
+        { label: "HP", sensitive: true },
+        { label: "ALAMAT", sensitive: true },
+        { label: "SKOR", sensitive: false },
+        { label: "NAMA", sensitive: false },
+      ];
+
+      // Kumpulan Data Dummy untuk memvariasikan isi yang mengalir
+      const dummyData = {
+        NIK: [
+          "3271012...",
+          "3172054...",
+          "3301025...",
+          "1203045...",
+          "3404018...",
+          "5102033...",
+        ],
+        HP: [
+          "0812-3456-7890",
+          "0857-1122-3344",
+          "0819-9988-7766",
+          "0811-2233-4455",
+          "0896-5544-3322",
+        ],
+        ALAMAT: [
+          "Jl. Merdeka No. 10",
+          "Komp. Asri Blok B",
+          "Jl. Sudirman 45",
+          "Desa Sukamaju RT2",
+          "Jl. Anggrek Raya",
+        ],
+        SKOR: [
+          "85/100",
+          "92/100",
+          "78/100",
+          "95/100",
+          "88/100",
+          "90/100",
+          "75/100",
+        ],
+        NAMA: [
+          "Budi Santoso",
+          "Siti Aminah",
+          "Andi Wijaya",
+          "Dewi Lestari",
+          "Joko Susilo",
+          "Maya Indah",
+          "Rendi Kurnia",
+        ],
+      };
+
+      function getRandomItem(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      function spawnData() {
+        if (
+          Date.now() - lastSpawn > 1800 &&
+          protectedData < targetData &&
+          !isWin
+        ) {
+          const type = dataTypes[Math.floor(Math.random() * dataTypes.length)];
+          const generatedValue = getRandomItem(dummyData[type.label]);
+
+          dataStream.push({
+            x: -200,
+            // Gunakan hampir seluruh tinggi area permainan setelah instruksi ditutup.
+            y: 190 + Math.random() * 420,
+            w: 160,
+            h: 55,
+            type: type,
+            masked: false,
+            speed: 2 + Math.random() * 1.5,
+            val: generatedValue,
+          });
+          lastSpawn = Date.now();
+        }
+      }
+
+      function drawDataCard(d) {
+        ctx.save();
+        // Background
+        ctx.fillStyle = d.masked
+          ? "rgba(16, 185, 129, 0.15)"
+          : "rgba(30, 41, 59, 0.85)";
+
+        // Garis tepi seragam (tanpa clue visual)
+        ctx.strokeStyle = d.masked ? "#10b981" : "#475569";
+        ctx.lineWidth = 2;
+
+        // Card shape
+        roundRect(ctx, d.x, d.y, d.w, d.h, 12, true, true);
+
+        // Label
+        ctx.fillStyle = d.masked ? "#10b981" : "#94a3b8";
+        ctx.font = "bold 11px Plus Jakarta Sans";
+        ctx.fillText(d.type.label, d.x + 12, d.y + 20);
+
+        // Value
+        ctx.fillStyle = d.masked ? "#10b981" : "#f8fafc";
+        ctx.font = "bold 14px Plus Jakarta Sans";
+        ctx.fillText(d.masked ? "********" : d.val, d.x + 12, d.y + 42);
+
+        ctx.restore();
+      }
+
+      function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(
+          x + width,
+          y + height,
+          x + width - radius,
+          y + height,
+        );
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        if (fill) ctx.fill();
+        if (stroke) ctx.stroke();
+      }
+
+      function handleInteraction(e) {
+        if (!gameStarted || isWin) return;
+        const touches = e.changedTouches || [e];
+        const canvasRect = canvas.getBoundingClientRect();
+
+        for (const t of touches) {
+          const x =
+            (t.clientX - canvasRect.left) * (canvas.width / canvasRect.width);
+          const y =
+            (t.clientY - canvasRect.top) * (canvas.height / canvasRect.height);
+
+          dataStream.forEach((d) => {
+            // Toleransi klik diperbesar
+            if (
+              x > d.x - 10 &&
+              x < d.x + d.w + 10 &&
+              y > d.y - 10 &&
+              y < d.y + d.h + 10 &&
+              !d.masked
+            ) {
+              if (d.type.sensitive) {
+                d.masked = true;
+                protectedData++;
+                document.getElementById("protected-count").innerHTML =
+                  `${protectedData}<span class="text-2xl text-slate-500 font-normal"> / ${targetData}</span>`;
+              } else {
+                health = Math.max(0, health - 15);
+                d.masked = true;
+              }
+            }
+          });
+        }
+      }
+
+      function update() {
+        if (isWin) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        spawnData();
+
+        dataStream = dataStream.filter((d) => {
+          d.x += d.speed;
+          drawDataCard(d);
+
+          if (d.x > 1220) {
+            if (d.type.sensitive && !d.masked) {
+              health = Math.max(0, health - 15);
+            }
+            return false;
+          }
+          return true;
+        });
+
+        const healthFill = document.getElementById("health-fill");
+        const healthText = document.getElementById("health-percent");
+        healthFill.style.width = health + "%";
+        healthText.innerText = health + "% SECURE";
+
+        if (health < 40) {
+          healthText.className =
+            "text-sm font-bold text-rose-500 animate-pulse mt-1";
+          healthFill.style.background = "#ef4444";
+        }
+
+        if (protectedData >= targetData && health > 0) {
+          isWin = true;
+          document.getElementById("win-screen").classList.remove("hidden");
+        }
+
+        if (health <= 0) {
+          alert("Security Breach! Integritas Sistem hancur. Audit dibatalkan.");
+          location.reload();
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      canvas.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          handleInteraction(e);
+        },
+        { passive: false },
+      );
+      canvas.addEventListener("mousedown", handleInteraction);
+
+      document.getElementById("start-button").addEventListener("click", () => {
+        if (gameStarted) return;
+
+        gameStarted = true;
+        lastSpawn = Date.now();
+        document.getElementById("ready-screen").classList.add("hidden");
+        document.getElementById("progress-counter").classList.remove("hidden");
+        requestAnimationFrame(update);
+      });
+
+      // ==========================================
+      // INTEGRASI ARTICULATE STORYLINE
+      // ==========================================
+
+      function getSLPlayer() {
+        try {
+          if (parent && typeof parent.GetPlayer === "function")
+            return parent.GetPlayer();
+          if (window.top && typeof window.top.GetPlayer === "function")
+            return window.top.GetPlayer();
+          if (opener && typeof opener.GetPlayer === "function")
+            return opener.GetPlayer();
+        } catch (e) {
+          console.error("CORS Error: ", e);
+        }
+        return null;
+      }
+
+      function exitToMenu() {
+        const player = getSLPlayer();
+        if (player) {
+          player.SetVar("Nav_ReturnToLab", true);
+        } else {
+          if (parent) parent.postMessage("GO_TO_MENU", "*");
+          if (window.top) window.top.postMessage("GO_TO_MENU", "*");
+          console.log("Simulasi Keluar ke Menu Lab");
+        }
+      }
+
+      function finishAndReturn() {
+        const player = getSLPlayer();
+
+        if (parent) parent.postMessage("GAME_COMPLETE_3", "*");
+        if (window.top) window.top.postMessage("GAME_COMPLETE_3", "*");
+
+        if (player) {
+          player.SetVar("GameLevel3", true);
+          player.SetVar("Nav_ReturnToLab", true);
+        } else {
+          if (parent) parent.postMessage("GO_TO_MENU", "*");
+          if (window.top) window.top.postMessage("GO_TO_MENU", "*");
+          console.log("Simulasi: Misi Level 3 Selesai, kembali ke Menu Lab.");
+        }
+      }
+    </script>
+  </body>
+</html>

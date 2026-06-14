@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Level 2: AI Balance & Glitch Hunter</title>
+    <script src="tailwind.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #020617;
+        font-family: "Plus Jakarta Sans", sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        user-select: none;
+        touch-action: none;
+      }
+
+      #game-container {
+        width: 1280px;
+        height: 720px;
+        position: relative;
+        background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        border: 1px solid #1e293b;
+        overflow: hidden;
+      }
+
+      .heading {
+        font-family: "Outfit", sans-serif;
+      }
+
+      canvas {
+        display: block;
+        position: absolute;
+        inset: 0;
+        cursor: crosshair;
+      }
+
+      .ui-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .interactive {
+        pointer-events: auto;
+      }
+
+      .vertical-slider {
+        width: 80px;
+        height: 400px;
+        background: rgba(30, 41, 59, 0.5);
+        border-radius: 40px;
+        position: relative;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .slider-handle {
+        width: 70px;
+        height: 70px;
+        background: #6366f1;
+        border-radius: 35px;
+        position: absolute;
+        left: 2px;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
+        border: 3px solid #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.1s;
+      }
+
+      #sync-progress {
+        transition: width 0.3s ease;
+      }
+
+      .glitch-notice {
+        animation: pulse-red 1s infinite;
+      }
+
+      @keyframes pulse-red {
+        0% {
+          color: #f8fafc;
+        }
+        50% {
+          color: #f43f5e;
+        }
+        100% {
+          color: #f8fafc;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <!-- Canvas untuk Radar dan Glitch (Sekarang interaktif untuk klik) -->
+      <canvas id="gameCanvas" class="interactive"></canvas>
+
+      <div class="ui-overlay p-10 flex flex-col justify-between">
+        <!-- Header -->
+        <div class="flex justify-between items-start">
+          <div>
+            <h1 class="heading text-3xl font-bold text-white mb-1">
+              MISI 02: SINERGI AUDITOR
+            </h1>
+            <p class="text-indigo-400 tracking-widest text-sm uppercase">
+              Stabilisasi Model & Pembersihan Glitch
+            </p>
+          </div>
+
+          <div class="flex gap-4 items-center">
+            <div
+              class="glass-panel bg-slate-950/80 p-4 rounded-2xl border border-slate-700 text-right min-w-[200px]"
+            >
+              <p
+                id="system-status-label"
+                class="text-[10px] text-slate-500 uppercase font-bold"
+              >
+                Integritas Sistem
+              </p>
+              <p id="stability-text" class="text-xl font-bold text-emerald-400">
+                OPTIMAL
+              </p>
+            </div>
+
+            <!-- Tombol Kembali ke Lab -->
+            <button
+              onclick="exitToMenu()"
+              class="px-5 py-3 bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-300 text-xs font-bold rounded-xl border border-slate-700 transition-all shadow-md interactive"
+            >
+              KEMBALI KE LAB
+            </button>
+          </div>
+        </div>
+
+        <!-- Center Logic -->
+        <div
+          id="instruction-panel"
+          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-full"
+        >
+          <div id="glitch-warning" class="hidden mb-4">
+            <span
+              class="glitch-notice bg-rose-500/20 text-rose-500 px-6 py-2 rounded-full font-bold text-sm border border-rose-500/50"
+            >
+              PERINGATAN: GANGGUAN DATA TERDETEKSI! KETUK UNTUK BERSIHKAN!
+            </span>
+          </div>
+          <h2
+            id="main-msg"
+            class="heading text-2xl font-bold text-slate-300 mb-4 tracking-tight"
+          >
+            SINKRONISASI: TAHAN DI ZONA HIJAU
+          </h2>
+          <div class="flex justify-center items-center gap-6">
+            <div
+              class="h-2 w-64 bg-slate-800 rounded-full overflow-hidden border border-slate-700"
+            >
+              <div id="sync-progress" class="h-full bg-emerald-500 w-0"></div>
+            </div>
+            <span
+              id="sync-timer"
+              class="text-emerald-400 font-bold font-mono text-2xl"
+              >5.0s</span
+            >
+          </div>
+        </div>
+
+        <!-- Sliders -->
+        <div class="flex justify-between items-end">
+          <!-- P1: Accuracy -->
+          <div class="flex flex-col items-center gap-4">
+            <p class="text-[10px] font-bold text-slate-500 uppercase">
+              Akurasi (Engineer)
+            </p>
+            <div
+              class="bg-indigo-500/10 border border-indigo-500/30 px-4 py-1 rounded-lg mb-2"
+            >
+              <span
+                id="accuracy-val"
+                class="text-xl font-bold text-indigo-400 font-mono"
+                >50%</span
+              >
+            </div>
+            <div class="vertical-slider interactive" id="slider-acc">
+              <div
+                class="absolute inset-x-0 top-[20%] bottom-[20%] bg-emerald-500/10 border-y border-emerald-500/20"
+              ></div>
+              <div id="handle-acc" class="slider-handle" style="bottom: 50%">
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- P2: Privacy -->
+          <div class="flex flex-col items-center gap-4">
+            <p class="text-[10px] font-bold text-slate-500 uppercase">
+              Privasi (Ethicists)
+            </p>
+            <div
+              class="bg-rose-500/10 border border-rose-500/30 px-4 py-1 rounded-lg mb-2"
+            >
+              <span
+                id="privacy-val"
+                class="text-xl font-bold text-rose-400 font-mono"
+                >50%</span
+              >
+            </div>
+            <div class="vertical-slider interactive" id="slider-priv">
+              <div
+                class="absolute inset-x-0 top-[20%] bottom-[20%] bg-emerald-500/10 border-y border-emerald-500/20"
+              ></div>
+              <div
+                id="handle-priv"
+                class="slider-handle"
+                style="
+                  bottom: 50%;
+                  background: #f43f5e;
+                  box-shadow: 0 0 20px rgba(244, 63, 94, 0.6);
+                "
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Win Screen -->
+      <div
+        id="win-screen"
+        class="fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-10 hidden interactive"
+      >
+        <div class="text-center">
+          <div
+            class="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8"
+          >
+            <svg
+              class="w-12 h-12 text-emerald-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <h2 class="heading text-5xl font-bold text-white mb-4">
+            SINKRONISASI BERHASIL
+          </h2>
+          <p class="text-slate-400 text-lg mb-10 max-w-lg mx-auto">
+            Model AI telah stabil. Keseimbangan antara akurasi logis dan empati
+            privasi telah tercapai melalui kolaborasi kontrol Anda.
+          </p>
+          <button
+            onclick="finishAndReturn()"
+            class="px-12 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-xl transition-all shadow-lg shadow-emerald-500/20"
+          >
+            Selesaikan Misi & Kembali ke Lab
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 1280;
+      canvas.height = 720;
+
+      // Game State
+      let accuracy = 50;
+      let privacy = 50;
+      let syncTime = 0;
+      const targetSync = 5.0;
+      let glitches = [];
+      let isWin = false;
+      let lastGlitchSpawn = 0;
+
+      const players = {
+        acc: { isDragging: false, touchId: null },
+        priv: { isDragging: false, touchId: null },
+      };
+
+      function init() {
+        bindEvents();
+        requestAnimationFrame(update);
+      }
+
+      function bindEvents() {
+        const handleInteraction = (e, isStart) => {
+          const touches = e.changedTouches || [e];
+          for (const t of touches) {
+            const clientX = t.clientX;
+            const clientY = t.clientY;
+
+            if (isStart) {
+              // PERBAIKAN GLITCH: Menyesuaikan koordinat klik layar ke koordinat internal canvas
+              const canvasRect = canvas.getBoundingClientRect();
+              const canvasX =
+                (clientX - canvasRect.left) * (canvas.width / canvasRect.width);
+              const canvasY =
+                (clientY - canvasRect.top) *
+                (canvas.height / canvasRect.height);
+
+              checkGlitchClick(canvasX, canvasY);
+
+              // Cek interaksi Sliders (Slider menggunakan koordinat viewport normal)
+              const accRect = document
+                .getElementById("slider-acc")
+                .getBoundingClientRect();
+              const privRect = document
+                .getElementById("slider-priv")
+                .getBoundingClientRect();
+
+              if (clientX >= accRect.left && clientX <= accRect.right) {
+                players.acc.isDragging = true;
+                players.acc.touchId = t.identifier || 0;
+                updateSlider("acc", clientY);
+              }
+              if (clientX >= privRect.left && clientX <= privRect.right) {
+                players.priv.isDragging = true;
+                players.priv.touchId = t.identifier || 0;
+                updateSlider("priv", clientY);
+              }
+            } else {
+              // Update drag
+              if (
+                players.acc.isDragging &&
+                (t.identifier === players.acc.touchId || !e.changedTouches)
+              )
+                updateSlider("acc", clientY);
+              if (
+                players.priv.isDragging &&
+                (t.identifier === players.priv.touchId || !e.changedTouches)
+              )
+                updateSlider("priv", clientY);
+            }
+          }
+        };
+
+        const stopDrag = (e) => {
+          const touches = e.changedTouches || [e];
+          for (const t of touches) {
+            if (t.identifier === players.acc.touchId || !e.changedTouches)
+              players.acc.isDragging = false;
+            if (t.identifier === players.priv.touchId || !e.changedTouches)
+              players.priv.isDragging = false;
+          }
+        };
+
+        window.addEventListener(
+          "touchstart",
+          (e) => handleInteraction(e, true),
+          { passive: false },
+        );
+        window.addEventListener(
+          "touchmove",
+          (e) => handleInteraction(e, false),
+          { passive: false },
+        );
+        window.addEventListener("touchend", stopDrag);
+
+        window.addEventListener("mousedown", (e) => handleInteraction(e, true));
+        window.addEventListener("mousemove", (e) =>
+          handleInteraction(e, false),
+        );
+        window.addEventListener("mouseup", stopDrag);
+      }
+
+      function updateSlider(type, y) {
+        const rect = document
+          .getElementById("slider-" + type)
+          .getBoundingClientRect();
+        let relY = y - rect.top;
+        relY = Math.max(35, Math.min(365, relY));
+        const val = Math.round(100 - ((relY - 35) / 330) * 100);
+
+        if (type === "acc") {
+          accuracy = val;
+          if (accuracy > 85 && privacy > 30) privacy -= 0.3; // Dilemma effect
+        } else {
+          privacy = val;
+          if (privacy > 85 && accuracy > 30) accuracy -= 0.3; // Dilemma effect
+        }
+
+        document.getElementById(`handle-${type}`).style.bottom =
+          `calc(${val}% - 35px)`;
+        document.getElementById(
+          `${type === "acc" ? "accuracy" : "privacy"}-val`,
+        ).innerText = Math.floor(val) + "%";
+      }
+
+      function spawnGlitch() {
+        if (
+          Date.now() - lastGlitchSpawn > 2000 &&
+          glitches.length < 3 &&
+          syncTime > 0.5
+        ) {
+          glitches.push({
+            x: 300 + Math.random() * 680,
+            y: 150 + Math.random() * 420,
+            r: 30 + Math.random() * 20,
+            life: 1.0,
+            pulse: 0,
+          });
+          lastGlitchSpawn = Date.now();
+        }
+      }
+
+      function checkGlitchClick(x, y) {
+        // Menyaring glitch yang diklik (Toleransi 30px untuk memudahkan klik di IFP)
+        glitches = glitches.filter((g) => {
+          const dist = Math.sqrt((x - g.x) ** 2 + (y - g.y) ** 2);
+          return dist > g.r + 30;
+        });
+      }
+
+      function drawRadar() {
+        const cx = 640,
+          cy = 360;
+
+        // Target Zones
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.1)";
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 180, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Accuracy Line (P1)
+        drawDataPoint(cx, cy, accuracy, -Math.PI / 2 - 0.4, "#6366f1");
+        // Privacy Line (P2)
+        drawDataPoint(cx, cy, privacy, -Math.PI / 2 + 0.4, "#f43f5e");
+
+        // Core Pulse
+        const diff = Math.abs(accuracy - privacy);
+        const isBalanced =
+          accuracy >= 65 &&
+          accuracy <= 85 &&
+          privacy >= 65 &&
+          privacy <= 85 &&
+          diff < 15;
+        const coreColor =
+          glitches.length > 0
+            ? "244, 63, 94"
+            : isBalanced
+              ? "16, 185, 129"
+              : "99, 102, 241";
+
+        const pulse = Math.sin(Date.now() / 200) * 10;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 80 + pulse);
+        grad.addColorStop(0, `rgba(${coreColor}, 0.4)`);
+        grad.addColorStop(1, `rgba(${coreColor}, 0)`);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 100 + pulse, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawDataPoint(cx, cy, val, angle, color) {
+        const r = (val / 100) * 200;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawGlitches() {
+        glitches.forEach((g) => {
+          g.pulse = Math.sin(Date.now() / 100) * 5;
+          ctx.fillStyle = "rgba(244, 63, 94, 0.2)";
+          ctx.beginPath();
+          ctx.arc(g.x, g.y, g.r + g.pulse + 10, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = "#f43f5e";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(g.x, g.y, g.r + g.pulse, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 20px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText("X", g.x, g.y + 7);
+        });
+      }
+
+      function update() {
+        if (isWin) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        drawRadar();
+        spawnGlitch();
+        drawGlitches();
+
+        // Logic Sinkronisasi
+        const diff = Math.abs(accuracy - privacy);
+        const inZone =
+          accuracy >= 65 &&
+          accuracy <= 85 &&
+          privacy >= 65 &&
+          privacy <= 85 &&
+          diff < 15;
+        const hasGlitch = glitches.length > 0;
+
+        const stabilityText = document.getElementById("stability-text");
+        const warning = document.getElementById("glitch-warning");
+
+        if (hasGlitch) {
+          warning.classList.remove("hidden");
+          stabilityText.innerText = "TERINTERUPSI";
+          stabilityText.className =
+            "text-xl font-bold text-rose-500 animate-pulse";
+          syncTime = Math.max(0, syncTime - 0.01);
+        } else {
+          warning.classList.add("hidden");
+          if (inZone) {
+            syncTime += 0.016;
+            stabilityText.innerText = "SINKRONISASI...";
+            stabilityText.className = "text-xl font-bold text-emerald-400";
+            document.getElementById("main-msg").innerText =
+              "TAHAN POSISI! JANGAN BERGERAK!";
+            document.getElementById("main-msg").className =
+              "heading text-2xl font-bold text-emerald-400 mb-4";
+          } else {
+            stabilityText.innerText =
+              diff > 25 ? "TIDAK STABIL" : "MENCARI SINYAL";
+            stabilityText.className =
+              diff > 25
+                ? "text-xl font-bold text-rose-400"
+                : "text-xl font-bold text-yellow-400";
+            document.getElementById("main-msg").innerText =
+              "SINKRONISASI: TAHAN DI ZONA HIJAU";
+            document.getElementById("main-msg").className =
+              "heading text-2xl font-bold text-slate-300 mb-4";
+            syncTime = Math.max(0, syncTime - 0.005);
+          }
+        }
+
+        const progress = (syncTime / targetSync) * 100;
+        document.getElementById("sync-progress").style.width = progress + "%";
+        document.getElementById("sync-timer").innerText =
+          Math.max(0, targetSync - syncTime).toFixed(1) + "s";
+
+        if (syncTime >= targetSync) {
+          isWin = true;
+          document.getElementById("win-screen").classList.remove("hidden");
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      init();
+
+      // ==========================================
+      // INTEGRASI ARTICULATE STORYLINE (Sama seperti Level 1)
+      // ==========================================
+
+      function getSLPlayer() {
+        try {
+          if (parent && typeof parent.GetPlayer === "function")
+            return parent.GetPlayer();
+          if (window.top && typeof window.top.GetPlayer === "function")
+            return window.top.GetPlayer();
+          if (opener && typeof opener.GetPlayer === "function")
+            return opener.GetPlayer();
+        } catch (e) {
+          console.error("CORS Error: ", e);
+        }
+        return null;
+      }
+
+      function exitToMenu() {
+        const player = getSLPlayer();
+        if (player) {
+          player.SetVar("Nav_ReturnToLab", true);
+        } else {
+          if (parent) parent.postMessage("GO_TO_MENU", "*");
+          if (window.top) window.top.postMessage("GO_TO_MENU", "*");
+          console.log("Simulasi Keluar ke Menu Lab");
+        }
+      }
+
+      function finishAndReturn() {
+        const player = getSLPlayer();
+
+        // Kirim sinyal khusus kelulusan Level 2 (Bisa ditangkap listener)
+        if (parent) parent.postMessage("GAME_COMPLETE_2", "*");
+        if (window.top) window.top.postMessage("GAME_COMPLETE_2", "*");
+
+        if (player) {
+          // Ubah variabel GameLevel2 menjadi true agar gembok level 3 terbuka
+          player.SetVar("GameLevel2", true);
+          player.SetVar("Nav_ReturnToLab", true);
+        } else {
+          if (parent) parent.postMessage("GO_TO_MENU", "*");
+          if (window.top) window.top.postMessage("GO_TO_MENU", "*");
+          console.log("Simulasi: Misi Level 2 Selesai, kembali ke Menu Lab");
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detektif AI: Misi Rekrutmen Adil</title>
+    <script src="tailwind.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #6366f1;
+        --success: #10b981;
+        --danger: #ef4444;
+        --bg-dark: #020617;
+        --card-bg: #0f172a;
+      }
+
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: var(--bg-dark);
+        color: #f8fafc;
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Mencegah scroll di IFP */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      #game-container {
+        width: 1280px;
+        height: 720px;
+        background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+        position: relative;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        border: 1px solid #1e293b;
+        overflow: hidden;
+      }
+
+      .heading-font {
+        font-family: "Outfit", sans-serif;
+      }
+
+      .glass-panel {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .card-stack {
+        perspective: 1000px;
+      }
+
+      .candidate-card {
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        user-select: none;
+      }
+
+      .fairness-meter-fill {
+        transition:
+          width 0.5s ease-in-out,
+          background-color 0.5s ease;
+      }
+
+      /* Scanline effect for Cyberpunk vibe */
+      .scanline {
+        width: 100%;
+        height: 2px;
+        background: rgba(99, 102, 241, 0.1);
+        position: absolute;
+        z-index: 10;
+        animation: scan 4s linear infinite;
+      }
+
+      @keyframes scan {
+        0% {
+          top: 0;
+        }
+        100% {
+          top: 100%;
+        }
+      }
+
+      .btn-action {
+        transition: all 0.2s ease;
+      }
+      .btn-action:active {
+        transform: scale(0.95);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <div class="scanline"></div>
+
+      <!-- Header -->
+      <header
+        class="absolute top-0 w-full p-6 flex justify-between items-center z-20"
+      >
+        <div>
+          <h1
+            class="heading-font text-2xl font-bold tracking-tight text-indigo-400"
+          >
+            DETEKTIF AI
+          </h1>
+          <p class="text-xs text-slate-400 tracking-widest uppercase">
+            Misi 01: De-biasing Dataset
+          </p>
+        </div>
+        <div class="flex gap-8">
+          <div class="text-right">
+            <p class="text-[10px] uppercase text-slate-500 mb-1">Auditor</p>
+            <p id="auditor-name" class="font-semibold text-indigo-100">
+              Guest_User
+            </p>
+          </div>
+          <div class="text-right">
+            <p class="text-[10px] uppercase text-slate-500 mb-1">
+              Skor Keadilan
+            </p>
+            <p id="fairness-score" class="font-bold text-emerald-400 text-xl">
+              0%
+            </p>
+          </div>
+          <button
+            onclick="exitToMenu()"
+            class="px-4 py-2 bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-300 text-xs font-bold rounded-lg border border-slate-700 transition-all shadow-md"
+          >
+            KEMBALI KE LAB
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="h-full flex items-center px-12 pt-16">
+        <!-- Left: Sidebar Info -->
+        <aside class="w-1/4 space-y-6">
+          <div class="glass-panel p-5 rounded-2xl">
+            <h3
+              class="text-sm font-bold text-indigo-300 mb-3 uppercase tracking-tighter"
+            >
+              Target Audit
+            </h3>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Kumpulkan 8 kandidat yang
+              <span class="text-white font-bold italic">seimbang</span>. Hindari
+              pola bias (Gender & Wilayah) agar AI belajar secara adil.
+            </p>
+          </div>
+
+          <div class="glass-panel p-5 rounded-2xl">
+            <h3
+              class="text-sm font-bold text-indigo-300 mb-3 uppercase tracking-tighter"
+            >
+              Data Komposisi
+            </h3>
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between text-[10px] mb-1">
+                  <span>PRIA</span>
+                  <span id="count-m">0</span>
+                </div>
+                <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    id="bar-m"
+                    class="h-full bg-blue-500 w-0 transition-all"
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-[10px] mb-1">
+                  <span>WANITA</span>
+                  <span id="count-f">0</span>
+                </div>
+                <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    id="bar-f"
+                    class="h-full bg-pink-500 w-0 transition-all"
+                  ></div>
+                </div>
+              </div>
+              <div class="pt-2 border-t border-slate-800">
+                <div class="flex justify-between text-[10px] mb-1">
+                  <span>PEDESAAN (RURAL)</span>
+                  <span id="count-rural">0</span>
+                </div>
+                <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    id="bar-rural"
+                    class="h-full bg-emerald-500 w-0 transition-all"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center: Card Swiper Area -->
+        <section
+          class="flex-1 flex flex-col items-center justify-center relative"
+        >
+          <div id="card-area" class="w-80 h-[420px] relative card-stack">
+            <!-- Cards will be injected here via JS -->
+            <div
+              id="empty-state"
+              class="absolute inset-0 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none transition-opacity duration-500"
+            >
+              <div
+                class="w-20 h-20 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4"
+              >
+                <svg
+                  class="w-10 h-10 text-indigo-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  ></path>
+                </svg>
+              </div>
+              <h2 class="text-xl font-bold mb-2 text-white">Audit Selesai</h2>
+              <p class="text-sm text-slate-400 mb-6">
+                Menganalisis hasil de-biasing...
+              </p>
+              <button
+                onclick="finishLevel()"
+                class="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/40 transition-all"
+              >
+                Lihat Laporan
+              </button>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div id="action-btns" class="mt-12 flex gap-12">
+            <button
+              onclick="handleDecision(false)"
+              class="group flex flex-col items-center gap-2"
+            >
+              <div
+                class="w-16 h-16 rounded-full border-2 border-rose-500 flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white btn-action"
+              >
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
+                </svg>
+              </div>
+              <span
+                class="text-[10px] font-bold tracking-widest text-rose-400 uppercase"
+                >Abaikan</span
+              >
+            </button>
+            <button
+              onclick="handleDecision(true)"
+              class="group flex flex-col items-center gap-2"
+            >
+              <div
+                class="w-16 h-16 rounded-full border-2 border-emerald-500 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white btn-action"
+              >
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  ></path>
+                </svg>
+              </div>
+              <span
+                class="text-[10px] font-bold tracking-widest text-emerald-400 uppercase"
+                >Terima</span
+              >
+            </button>
+          </div>
+        </section>
+
+        <!-- Right: Instructions / Objective -->
+        <aside class="w-1/4">
+          <div class="glass-panel p-6 rounded-3xl border-indigo-500/30">
+            <h3
+              class="text-indigo-400 text-xs font-bold uppercase mb-4 tracking-widest"
+            >
+              Status Log
+            </h3>
+            <div
+              id="log-container"
+              class="space-y-4 h-64 overflow-hidden relative"
+            >
+              <!-- Logs will appear here -->
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <!-- Bottom Meter -->
+      <div class="absolute bottom-0 w-full h-1 bg-slate-900">
+        <div
+          id="overall-progress"
+          class="h-full bg-indigo-500 w-0 transition-all duration-300"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Intro Modal -->
+    <div
+      id="intro-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 glass-panel bg-black/60"
+    >
+      <div
+        class="max-w-xl w-full bg-slate-900 p-8 rounded-3xl border border-slate-800 text-center"
+      >
+        <div
+          class="w-16 h-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6"
+        >
+          <svg
+            class="w-8 h-8 text-indigo-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+            ></path>
+          </svg>
+        </div>
+        <h2 class="heading-font text-3xl font-bold mb-4">
+          Misi 1: Audit Dataset
+        </h2>
+        <p class="text-slate-400 mb-8 leading-relaxed">
+          Halo Auditor. AI Rekrutmen GlobalTech cenderung memilih pelamar
+          <strong>Pria dari Kota</strong>. Tugasmu: Pilih
+          <strong>8 kandidat</strong> yang merepresentasikan keberagaman (Gender
+          & Wilayah). Semakin seimbang pilihanmu, semakin adil AI di masa depan.
+        </p>
+        <button
+          onclick="startGame()"
+          class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all"
+        >
+          Mulai Audit
+        </button>
+      </div>
+    </div>
+
+    <!-- Result Report Modal (Hidden initially) -->
+    <div
+      id="result-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 glass-panel bg-black/80 hidden"
+    >
+      <div
+        class="max-w-2xl w-full bg-slate-900 p-10 rounded-3xl border border-emerald-500/30 text-center"
+      >
+        <h2
+          id="result-title"
+          class="heading-font text-4xl font-bold mb-2 text-emerald-400"
+        >
+          Audit Sukses
+        </h2>
+        <p id="result-desc" class="text-slate-400 mb-8 italic text-lg">
+          "Data yang adil adalah fondasi teknologi masa depan."
+        </p>
+
+        <div class="grid grid-cols-2 gap-4 mb-8">
+          <div class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+            <p class="text-[10px] text-slate-500 uppercase mb-2">
+              Skor Keadilan
+            </p>
+            <p id="final-fairness" class="text-3xl font-bold text-white">0%</p>
+          </div>
+          <div class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+            <p class="text-[10px] text-slate-500 uppercase mb-2">Pilar CT</p>
+            <p class="text-xl font-bold text-indigo-400">Abstraksi Data</p>
+          </div>
+        </div>
+
+        <div
+          class="space-y-3 mb-10 text-left bg-indigo-500/5 p-6 rounded-2xl border border-indigo-500/10"
+        >
+          <p class="text-sm font-semibold text-indigo-200">Refleksi Auditor:</p>
+          <p
+            id="reflection-text"
+            class="text-sm text-slate-400 leading-relaxed"
+          ></p>
+        </div>
+
+        <button
+          onclick="finishAndReturn()"
+          class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 rounded-2xl font-bold text-white text-lg transition-all shadow-lg shadow-emerald-500/20"
+        >
+          Selesaikan Misi & Kembali ke Lab
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // Game Data
+      const candidates = [
+        {
+          id: 1,
+          name: "Budi Santoso",
+          gender: "M",
+          origin: "Urban",
+          color: "#3b82f6",
+          icon: "👨‍💻",
+        },
+        {
+          id: 2,
+          name: "Siti Aminah",
+          gender: "F",
+          origin: "Rural",
+          color: "#ec4899",
+          icon: "👩‍💻",
+        },
+        {
+          id: 3,
+          name: "Andi Wijaya",
+          gender: "M",
+          origin: "Urban",
+          color: "#3b82f6",
+          icon: "👨‍🔧",
+        },
+        {
+          id: 4,
+          name: "Lina Marlina",
+          gender: "F",
+          origin: "Rural",
+          color: "#ec4899",
+          icon: "👩‍💼",
+        },
+        {
+          id: 5,
+          name: "Agus Pratama",
+          gender: "M",
+          origin: "Urban",
+          color: "#3b82f6",
+          icon: "👨‍💼",
+        },
+        {
+          id: 6,
+          name: "Dewi Lestari",
+          gender: "F",
+          origin: "Urban",
+          color: "#ec4899",
+          icon: "👩‍🔬",
+        },
+        {
+          id: 7,
+          name: "Joko Susilo",
+          gender: "M",
+          origin: "Rural",
+          color: "#3b82f6",
+          icon: "👨‍🌾",
+        },
+        {
+          id: 8,
+          name: "Eka Putri",
+          gender: "F",
+          origin: "Urban",
+          color: "#ec4899",
+          icon: "👩‍💻",
+        },
+        {
+          id: 9,
+          name: "Rendi Kurnia",
+          gender: "M",
+          origin: "Rural",
+          color: "#3b82f6",
+          icon: "👨‍🔧",
+        },
+        {
+          id: 10,
+          name: "Maya Indah",
+          gender: "F",
+          origin: "Rural",
+          color: "#ec4899",
+          icon: "👩‍🔬",
+        },
+        {
+          id: 11,
+          name: "Hendra Saputra",
+          gender: "M",
+          origin: "Urban",
+          color: "#3b82f6",
+          icon: "👨‍💻",
+        },
+        {
+          id: 12,
+          name: "Sari Devi",
+          gender: "F",
+          origin: "Rural",
+          color: "#ec4899",
+          icon: "👩‍🌾",
+        },
+      ];
+
+      let currentIdx = 0;
+      let selected = [];
+      let stats = { M: 0, F: 0, Rural: 0, Urban: 0 };
+      const TARGET_COUNT = 8;
+
+      function startGame() {
+        document.getElementById("intro-modal").classList.add("hidden");
+        renderCard();
+        addLog("Mulai audit sistem GlobalTech...");
+      }
+
+      function renderCard() {
+        const container = document.getElementById("card-area");
+        const data = candidates[currentIdx];
+
+        if (!data || selected.length >= TARGET_COUNT) {
+          const emptyState = document.getElementById("empty-state");
+          emptyState.style.opacity = "1";
+          emptyState.classList.remove("pointer-events-none");
+          emptyState.classList.add("pointer-events-auto");
+          document.getElementById("action-btns").classList.add("hidden");
+          return;
+        }
+
+        const card = document.createElement("div");
+        card.className = `candidate-card absolute inset-0 bg-slate-800 rounded-3xl border-2 border-slate-700 shadow-2xl p-8 flex flex-col items-center justify-center text-center`;
+        card.id = `card-${data.id}`;
+        card.innerHTML = `
+                <div class="text-6xl mb-6">${data.icon}</div>
+                <h2 class="text-2xl font-bold mb-2">${data.name}</h2>
+                <div class="flex gap-2 mb-8">
+                    <span class="px-3 py-1 bg-slate-700 rounded-full text-[10px] font-bold uppercase tracking-widest">${data.gender === "M" ? "Pria" : "Wanita"}</span>
+                    <span class="px-3 py-1 bg-slate-700 rounded-full text-[10px] font-bold uppercase tracking-widest">${data.origin}</span>
+                </div>
+                <div class="w-full bg-slate-900/50 p-4 rounded-xl text-left border border-slate-700/50">
+                    <p class="text-[10px] text-slate-500 uppercase mb-1">Status Kualifikasi</p>
+                    <p class="text-sm font-medium text-emerald-400 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        Memenuhi Syarat Kompetensi
+                    </p>
+                </div>
+            `;
+        container.appendChild(card);
+      }
+
+      function handleDecision(accept) {
+        const data = candidates[currentIdx];
+        const card = document.getElementById(`card-${data.id}`);
+        if (!card) return;
+
+        if (accept) {
+          card.style.transform = "translateX(500px) rotate(30deg)";
+          card.style.opacity = "0";
+          selected.push(data);
+          updateStats(data);
+          addLog(`Diterima: ${data.name}`);
+        } else {
+          card.style.transform = "translateX(-500px) rotate(-30deg)";
+          card.style.opacity = "0";
+          addLog(`Diabaikan: ${data.name}`);
+        }
+
+        setTimeout(() => {
+          card.remove();
+          currentIdx++;
+          renderCard();
+          updateProgressBar();
+        }, 400);
+      }
+
+      function updateStats(data) {
+        stats[data.gender]++;
+        stats[data.origin]++;
+
+        document.getElementById("count-m").innerText = stats.M;
+        document.getElementById("count-f").innerText = stats.F;
+        document.getElementById("count-rural").innerText = stats.Rural;
+
+        document.getElementById("bar-m").style.width =
+          `${(stats.M / 4) * 100}%`;
+        document.getElementById("bar-f").style.width =
+          `${(stats.F / 4) * 100}%`;
+        document.getElementById("bar-rural").style.width =
+          `${(stats.Rural / 4) * 100}%`;
+
+        calculateFairness();
+      }
+
+      function calculateFairness() {
+        const genderDiff = Math.abs(stats.M - stats.F);
+        const originDiff = Math.abs(stats.Urban - stats.Rural);
+
+        let score = 100 - (genderDiff + originDiff) * 6.25;
+        if (selected.length < 2) score = 0;
+
+        const scoreEl = document.getElementById("fairness-score");
+        scoreEl.innerText = `${Math.floor(score)}%`;
+
+        if (score > 80)
+          scoreEl.className = "font-bold text-emerald-400 text-xl";
+        else if (score > 50)
+          scoreEl.className = "font-bold text-yellow-400 text-xl";
+        else scoreEl.className = "font-bold text-rose-400 text-xl";
+
+        return Math.floor(score);
+      }
+
+      function updateProgressBar() {
+        const prog = (selected.length / TARGET_COUNT) * 100;
+        document.getElementById("overall-progress").style.width = `${prog}%`;
+      }
+
+      function addLog(msg) {
+        const logBox = document.getElementById("log-container");
+        const item = document.createElement("div");
+        item.className =
+          "text-[11px] text-slate-400 border-l-2 border-indigo-500/30 pl-3 py-1 animate-fadeIn";
+        item.innerHTML = `<span class="text-indigo-400 font-mono">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+        logBox.prepend(item);
+      }
+
+      function finishLevel() {
+        const finalScore = calculateFairness();
+        document.getElementById("result-modal").classList.remove("hidden");
+        document.getElementById("final-fairness").innerText = `${finalScore}%`;
+
+        let reflection = "";
+        if (finalScore >= 90) {
+          reflection =
+            "Luar biasa! Kamu berhasil menyeimbangkan dataset secara sempurna. AI yang dilatih dengan data ini akan memberikan kesempatan yang adil bagi siapa saja tanpa melihat latar belakang gender atau wilayah.";
+        } else if (finalScore >= 70) {
+          reflection =
+            "Bagus. Kamu sudah berusaha mengurangi bias, namun masih ada sedikit ketimpangan. Ingat, keterwakilan (representation) sangat penting agar kelompok minoritas tidak terpinggirkan oleh algoritma.";
+        } else {
+          reflection =
+            "Peringatan: Dataset yang kamu pilih masih sangat bias. Jika AI dilatih dengan data ini, diskriminasi terhadap kelompok tertentu akan terus berlanjut secara otomatis. Mari coba lebih peka terhadap keberagaman.";
+          document.getElementById("result-title").innerText =
+            "Audit Selesai dengan Catatan";
+          document.getElementById("result-title").className =
+            "heading-font text-4xl font-bold mb-2 text-yellow-400";
+        }
+        document.getElementById("reflection-text").innerText = reflection;
+      }
+
+      // --- FUNGSI KOMUNIKASI ARTICULATE STORYLINE ---
+
+      // Fungsi aman untuk memanggil player Storyline
+      function getSLPlayer() {
+        try {
+          return parent.GetPlayer();
+        } catch (e) {
+          return null; // Akan mengembalikan null jika dijalankan secara lokal di luar Storyline
+        }
+      }
+
+      window.onload = () => {
+        let name = "Auditor_Tamu"; // Nama default jika tidak ada Storyline
+        const player = getSLPlayer();
+
+        // Mengambil variabel 'playerName' dari Storyline
+        if (player) {
+          const slName = player.GetVar("playerName");
+          if (slName && slName.trim() !== "") {
+            name = slName;
+          }
+        }
+        document.getElementById("auditor-name").innerText = name;
+      };
+
+      // Fungsi untuk tombol Keluar saat game sedang berjalan
+      function exitToMenu() {
+        const player = getSLPlayer();
+        if (player) {
+          // Mengubah variabel trigger di Storyline
+          player.SetVar("Nav_ReturnToLab", true);
+        } else {
+          console.log("Simulasi: Kembali ke Menu Lab");
+        }
+      }
+
+      // Fungsi untuk tombol selesai setelah mendapat skor
+      function finishAndReturn() {
+        const player = getSLPlayer();
+        const finalScoreText =
+          document.getElementById("final-fairness").innerText;
+        const finalScore = parseInt(finalScoreText.replace("%", ""));
+
+        if (player) {
+          // Jika skor lebih dari atau sama dengan 70, tandai Level 1 Selesai
+          if (finalScore >= 70) {
+            player.SetVar("GameLevel1", true);
+          }
+          // Kirim perintah untuk kembali ke halaman menu
+          player.SetVar("Nav_ReturnToLab", true);
+        } else {
+          console.log(
+            "Simulasi: Misi Selesai. Kembali ke Menu Lab. Skor: " + finalScore,
+          );
+        }
+      }
+    </script>
+  </body>
+</html>
